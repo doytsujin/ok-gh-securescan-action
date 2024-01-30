@@ -1,0 +1,1 @@
+# dk-gh-securescan-action
