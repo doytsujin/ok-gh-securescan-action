@@ -3,8 +3,8 @@ use std::fs::write;
 use std::process::exit;
 use reqwest;
 use serde_json::Value;
-use governor::{Quota, RateLimiter, state::InMemoryState, clock::DefaultClock};
-use std::num::NonZeroU32;
+use ratelimit::Ratelimiter;
+use std::time::Duration;
 use tokio;
 
 #[tokio::main]
@@ -12,7 +12,10 @@ async fn main() {
     let github_output_path = env::var("GITHUB_OUTPUT").unwrap();
 
     let args: Vec<String> = env::args().collect();
-    let rate_limiter = RateLimiter::<String, InMemoryState, DefaultClock>::direct(Quota::per_minute(NonZeroU32::new(50).unwrap()));
+    let rate_limiter = Ratelimiter::builder(10, Duration::from_secs(10))
+        .max_tokens(10)
+        .build()
+        .unwrap();
 
     // Check for the presence of at least one argument (the command)
     if args.len() < 2 {
@@ -48,11 +51,11 @@ fn clean() {
     println!("Running 'clean'");
 }
 
-async fn plan(enterprise: &str, rate_limiter: &RateLimiter<String, InMemoryState, DefaultClock>) {
+async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
     let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
 
-    // Check rate limiter
-    if rate_limiter.check_key(&()).is_ok() {
+    // Check rate limiter with the correct key
+    if rate_limiter.check_key(&key).is_ok() {
         // Proceed with the request
         match reqwest::get(&url).await {
             Ok(response) => {
