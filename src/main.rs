@@ -30,20 +30,20 @@ async fn main() {
 
     match command.as_str() {
         "clean" => clean(),
-        "plan" => {
+        "run" => {
             if args.len() < 3 {
-                eprintln!("No parameter provided for 'plan'");
+                eprintln!("No parameter provided for 'run'");
                 write(
                     &github_output_path,
-                    "error=No parameter provided for 'plan'",
+                    "error=No parameter provided for 'run'",
                 )
                 .unwrap();
                 exit(1);
             }
             let param = &args[2];
-            plan(param, &rate_limiter).await;
+            run(param, &rate_limiter).await;
         }
-        "run" => run(),
+        "plan" => plan(),
         _ => {
             eprintln!("Invalid command: {}", command);
             write(
@@ -58,10 +58,10 @@ async fn main() {
 
 fn clean() {
     // Implement clean logic here
-    println!("Running 'clean'");
+    println!("TODO Running 'clean'");
 }
 
-async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
+async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
     let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
 
     let max_retries = 5; // Set the maximum number of retries
@@ -106,9 +106,9 @@ async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
     }
 }
 
-fn run() {
+fn plan() {
     // Implement run logic here
-    println!("Running 'run'");
+    println!("TODO Running 'plan'");
 }
 
 fn create_output_dir() -> String {
