@@ -2,6 +2,7 @@ use ratelimit::Ratelimiter;
 use reqwest;
 use serde_json::Value;
 use std::env;
+use std::fs;
 use std::fs::write;
 use std::process::exit;
 use std::time::Duration;
@@ -9,7 +10,8 @@ use tokio;
 
 #[tokio::main]
 async fn main() {
-    let github_output_path = env::var("GITHUB_OUTPUT").unwrap();
+    let github_output_path =
+        env::var("GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
 
     let args: Vec<String> = env::args().collect();
     let rate_limiter = Ratelimiter::builder(10, Duration::from_secs(10))
@@ -107,4 +109,26 @@ async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
 fn run() {
     // Implement run logic here
     println!("Running 'run'");
+}
+
+fn create_output_dir() -> String {
+    // Get the current executable path
+    let mut exe_path = match env::current_exe() {
+        Ok(path) => path,
+        Err(_) => return "Error: Unable to determine executable path".to_string(),
+    };
+
+    // Append "output" to the path
+    exe_path.push("output");
+
+    // Create the "output" directory if it doesn't exist
+    if let Err(_) = fs::create_dir_all(&exe_path) {
+        return "Error: Unable to create output directory".to_string();
+    }
+
+    // Convert the path to a string
+    match exe_path.to_str() {
+        Some(path_str) => path_str.to_string(),
+        None => "Error: Path contains invalid Unicode".to_string(),
+    }
 }
