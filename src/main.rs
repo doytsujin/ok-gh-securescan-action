@@ -72,31 +72,12 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
     );
     headers.insert(
         AUTHORIZATION,
-        HeaderValue::from_static("Bearer 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"),
+        HeaderValue::from_static("Bearer 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"),
     );
     headers.insert(
         "X-GitHub-Api-Version",
         HeaderValue::from_static("2022-11-28"),
     );
-
-    /*
-    let client = reqwest::Client::new();
-    let mut headers = HeaderMap::new();
-    headers.insert(ACCEPT, HeaderValue::from_static("application/vnd.github+json"));
-    headers.insert(AUTHORIZATION, HeaderValue::from_static("Bearer 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"));
-    headers.insert("X-GitHub-Api-Version", HeaderValue::from_static("2022-11-28"));
-    let response = client.get("https://api.github.com/repos/doytsujin/ok-gh-securescan-action")
-        .headers(headers)
-        .send()
-        .await;
-    if response.status().is_success() {
-        let body = response.text().await;
-        println!("Response body: {}", body);
-    } else {
-        eprintln!("Request failed with status: {}", response.status());
-    }
-    Ok(())
-    */
 
     let max_retries = 10; // Set the maximum number of retries
     for attempt in 0..max_retries {
@@ -138,34 +119,6 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                         eprintln!("Failed to build the request: {:?}", e);
                     }
                 }
-                /*
-                let request = request_builder.build();
-                // Print method and URL
-                println!("Method: {:?}", request.method());
-                println!("URL: {:?}", request.url());
-                // Print headers
-                for (key, value) in request.headers().iter() {
-                    println!("Header: {:?}: {:?}", key, value);
-                }
-                match client.execute(request).await?;
-                {
-                    Ok(response) => {
-                        if response.status().is_success() {
-                            match response.json::<Value>().await? {
-                                Ok(repos) => {
-                                    // Process the list of repositories here
-                                    println!("Repositories: {:?}", repos);
-                                }
-                                Err(e) => eprintln!("Failed to parse response: {}", e),
-                            }
-                        } else {
-                            eprintln!("Request failed with status: {}", response.status());
-                        }
-                    }
-                    Err(e) => eprintln!("Failed to send request: {}", e),
-                }
-                break; // Exit the loop on success
-                */
             }
             Err(e) => {
                 eprintln!("Try and wait on limiter: {:?}", e);
