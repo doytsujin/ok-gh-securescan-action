@@ -1,6 +1,8 @@
 use ratelimit::Ratelimiter;
 use reqwest;
-use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION};
+// use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
+use reqwest::{Error, Request, Response};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -64,23 +66,92 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
     // let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
-    headers.insert(ACCEPT, "application/vnd.github+json".parse().unwrap());
-    headers.insert(AUTHORIZATION, "Bearer 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".parse().unwrap());
-    headers.insert("X-GitHub-Api-Version", "2022-11-28".parse().unwrap());
+    headers.insert(
+        ACCEPT,
+        HeaderValue::from_static("application/vnd.github+json"),
+    );
+    headers.insert(
+        AUTHORIZATION,
+        HeaderValue::from_static("Bearer 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"),
+    );
+    headers.insert(
+        "X-GitHub-Api-Version",
+        HeaderValue::from_static("2022-11-28"),
+    );
+
+    /*
+    let client = reqwest::Client::new();
+    let mut headers = HeaderMap::new();
+    headers.insert(ACCEPT, HeaderValue::from_static("application/vnd.github+json"));
+    headers.insert(AUTHORIZATION, HeaderValue::from_static("Bearer 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"));
+    headers.insert("X-GitHub-Api-Version", HeaderValue::from_static("2022-11-28"));
+    let response = client.get("https://api.github.com/repos/doytsujin/ok-gh-securescan-action")
+        .headers(headers)
+        .send()
+        .await;
+    if response.status().is_success() {
+        let body = response.text().await;
+        println!("Response body: {}", body);
+    } else {
+        eprintln!("Request failed with status: {}", response.status());
+    }
+    Ok(())
+    */
 
     let max_retries = 10; // Set the maximum number of retries
     for attempt in 0..max_retries {
         match rate_limiter.try_wait() {
             Ok(_) => {
-                match client
+                let request_builder = client
                     .get("https://api.github.com/repos/doytsujin/ok-gh-securescan-action")
-                    .headers(headers)
-                    .send()
-                    .await
+                    .basic_auth("doytsujin", Some(""))
+                    .headers(headers.clone());
+                match request_builder.build() {
+                    Ok(request) => {
+                        // Print method and URL
+                        println!("Method: {:?}", request.method());
+                        println!("URL: {:?}", request.url());
+                        // Print headers
+                        for (key, value) in request.headers().iter() {
+                            println!("Header: {:?}: {:?}", key, value);
+                        }
+                        // Send the request
+                        let response = client.execute(request).await;
+                        match response {
+                            Ok(response) => {
+                                if response.status().is_success() {
+                                    match response.json::<Value>().await {
+                                        Ok(repos) => {
+                                            // Process the list of repositories here
+                                            println!("Repositories: {:?}", repos);
+                                        }
+                                        Err(e) => eprintln!("Failed to parse response: {}", e),
+                                    }
+                                } else {
+                                    eprintln!("Request failed with status: {}", response.status());
+                                }
+                            }
+                            Err(e) => eprintln!("Failed to send request: {}", e),
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to build the request: {:?}", e);
+                    }
+                }
+                /*
+                let request = request_builder.build();
+                // Print method and URL
+                println!("Method: {:?}", request.method());
+                println!("URL: {:?}", request.url());
+                // Print headers
+                for (key, value) in request.headers().iter() {
+                    println!("Header: {:?}: {:?}", key, value);
+                }
+                match client.execute(request).await?;
                 {
                     Ok(response) => {
                         if response.status().is_success() {
-                            match response.json::<Value>().await {
+                            match response.json::<Value>().await? {
                                 Ok(repos) => {
                                     // Process the list of repositories here
                                     println!("Repositories: {:?}", repos);
@@ -94,6 +165,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                     Err(e) => eprintln!("Failed to send request: {}", e),
                 }
                 break; // Exit the loop on success
+                */
             }
             Err(e) => {
                 eprintln!("Try and wait on limiter: {:?}", e);
