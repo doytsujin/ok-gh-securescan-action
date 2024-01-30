@@ -40,27 +40,32 @@ jobs:
 
       - name: Install pkg config
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: sudo apt install pkg-config
+        run: sudo apt-get install -y pkg-config
 
       - name: Install build essential
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: sudo apt install build-essential
+        run: sudo apt-get install -y build-essential
         
       - name: Install openssl
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: sudo apt install -y openssl
+        run: sudo apt-get install -y openssl
         
       - name: Install libssl
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: sudo apt install -y libssl-dev
+        run: sudo apt-get install -y libssl-dev
 
       - name: Build for x86_64-unknown-linux-musl 
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: PKG_CONFIG_SYSROOT_DIR=/ cargo build --release --target ${{ matrix.target }}
 
       - name: Build
+        if: ${{ matrix.target == 'x86_64-apple-darwin' }}
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Build
+        if: ${{ matrix.target == 'x86_64-pc-windows-msvc' }}
+        run: cargo build --release --target ${{ matrix.target }}
+        
       - name: Create Archive Folder
         run: mkdir ${{ runner.os }}
 
