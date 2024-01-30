@@ -65,7 +65,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
     headers.insert(ACCEPT, "application/vnd.github+json".parse().unwrap());
-    headers.insert(AUTHORIZATION, "Bearer <YOUR-TOKEN>".parse().unwrap());
+    headers.insert(AUTHORIZATION, "Bearer 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".parse().unwrap());
     headers.insert("X-GitHub-Api-Version", "2022-11-28".parse().unwrap());
 
     let max_retries = 10; // Set the maximum number of retries
@@ -73,7 +73,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
         match rate_limiter.try_wait() {
             Ok(_) => {
                 match client
-                    .get("https://api.github.com/repos/OWNER/REPO")
+                    .get("https://api.github.com/repos/doytsujin/ok-gh-securescan-action")
                     .headers(headers)
                     .send()
                     .await
