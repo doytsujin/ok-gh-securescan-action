@@ -53,28 +53,26 @@ fn clean() {
 
 async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
     let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
+    
+    // Wait for a token to become available
+    rate_limiter.try_wait();
 
-    // Check rate limiter with the correct key
-    if rate_limiter.check_key(&key).is_ok() {
-        // Proceed with the request
-        match reqwest::get(&url).await {
-            Ok(response) => {
-                if response.status().is_success() {
-                    match response.json::<Value>().await {
-                        Ok(repos) => {
-                            // Process the list of repositories here
-                            println!("Repositories: {:?}", repos);
-                        }
-                        Err(e) => eprintln!("Failed to parse response: {}", e),
+    // Proceed with the request
+    match reqwest::get(&url).await {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.json::<Value>().await {
+                    Ok(repos) => {
+                        // Process the list of repositories here
+                        println!("Repositories: {:?}", repos);
                     }
-                } else {
-                    eprintln!("Request failed with status: {}", response.status());
+                    Err(e) => eprintln!("Failed to parse response: {}", e),
                 }
+            } else {
+                eprintln!("Request failed with status: {}", response.status());
             }
-            Err(e) => eprintln!("Failed to send request: {}", e),
         }
-    } else {
-        eprintln!("Rate limit exceeded. Please try again later.");
+        Err(e) => eprintln!("Failed to send request: {}", e),
     }
 }
 
