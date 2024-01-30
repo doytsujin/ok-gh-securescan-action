@@ -36,7 +36,23 @@ jobs:
 
       - name: Install musl-tools
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: sudo apt install pkg-config; sudo apt-get install -y musl-tools; sudo apt-get install -y openssl; sudo apt-get install -y libssl-dev
+        run: sudo apt-get install -y musl-tools
+
+      - name: Install pkg config
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt install pkg-config
+
+      - name: Install build essential
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt install build-essential
+        
+      - name: Install openssl
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt install -y openssl
+        
+      - name: Install libssl
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt install -y libssl-dev
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
