@@ -64,9 +64,9 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
     // let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
-    headers.insert(ACCEPT, "application/vnd.github+json".parse());
-    headers.insert(AUTHORIZATION, "Bearer <YOUR-TOKEN>".parse());
-    headers.insert("X-GitHub-Api-Version", "2022-11-28".parse());
+    headers.insert(ACCEPT, "application/vnd.github+json".parse().unwrap());
+    headers.insert(AUTHORIZATION, "Bearer <YOUR-TOKEN>".parse().unwrap());
+    headers.insert("X-GitHub-Api-Version", "2022-11-28".parse().unwrap());
 
     let max_retries = 10; // Set the maximum number of retries
     for attempt in 0..max_retries {
