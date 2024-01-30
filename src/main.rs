@@ -1,5 +1,6 @@
 use ratelimit::Ratelimiter;
 use reqwest;
+use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -14,8 +15,10 @@ async fn main() {
         env::var("GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
 
     let args: Vec<String> = env::args().collect();
-    let rate_limiter = Ratelimiter::builder(10, Duration::from_secs(10))
+
+    let rate_limiter = Ratelimiter::builder(1, Duration::from_secs(10))
         .max_tokens(10)
+        .initial_available(10)
         .build()
         .unwrap();
 
@@ -58,13 +61,23 @@ fn clean() {
 }
 
 async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
-    let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
+    // let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
+    let client = reqwest::Client::new();
+    let mut headers = HeaderMap::new();
+    headers.insert(ACCEPT, "application/vnd.github+json".parse());
+    headers.insert(AUTHORIZATION, "Bearer <YOUR-TOKEN>".parse());
+    headers.insert("X-GitHub-Api-Version", "2022-11-28".parse());
 
-    let max_retries = 5; // Set the maximum number of retries
+    let max_retries = 10; // Set the maximum number of retries
     for attempt in 0..max_retries {
         match rate_limiter.try_wait() {
             Ok(_) => {
-                match reqwest::get(&url).await {
+                match client
+                    .get("https://api.github.com/repos/OWNER/REPO")
+                    .headers(headers)
+                    .send()
+                    .await
+                {
                     Ok(response) => {
                         if response.status().is_success() {
                             match response.json::<Value>().await {
@@ -83,6 +96,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                 break; // Exit the loop on success
             }
             Err(e) => {
+                eprintln!("Try and wait on limiter: {:?}", e);
                 if attempt < max_retries - 1 {
                     // Log the retry attempt
                     eprintln!("Rate limit exceeded, retrying... (Attempt {})", attempt + 1);
