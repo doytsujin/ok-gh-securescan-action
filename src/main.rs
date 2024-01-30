@@ -33,11 +33,7 @@ async fn main() {
         "run" => {
             if args.len() < 3 {
                 eprintln!("No parameter provided for 'run'");
-                write(
-                    &github_output_path,
-                    "error=No parameter provided for 'run'",
-                )
-                .unwrap();
+                write(&github_output_path, "error=No parameter provided for 'run'").unwrap();
                 exit(1);
             }
             let param = &args[2];
