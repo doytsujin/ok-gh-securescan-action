@@ -54,25 +54,42 @@ fn clean() {
 async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
     let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
     
-    // Wait for a token to become available
-    rate_limiter.try_wait();
-
-    // Proceed with the request
-    match reqwest::get(&url).await {
-        Ok(response) => {
-            if response.status().is_success() {
-                match response.json::<Value>().await {
-                    Ok(repos) => {
-                        // Process the list of repositories here
-                        println!("Repositories: {:?}", repos);
+    let max_retries = 5; // Set the maximum number of retries
+    for attempt in 0..max_retries {
+        match rate_limiter.try_wait() {
+            Ok(_) => {
+                match reqwest::get(&url).await {
+                    Ok(response) => {
+                        if response.status().is_success() {
+                            match response.json::<Value>().await {
+                                Ok(repos) => {
+                                    // Process the list of repositories here
+                                    println!("Repositories: {:?}", repos);
+                                }
+                                Err(e) => eprintln!("Failed to parse response: {}", e),
+                            }
+                        } else {
+                            eprintln!("Request failed with status: {}", response.status());
+                        }
                     }
-                    Err(e) => eprintln!("Failed to parse response: {}", e),
+                    Err(e) => eprintln!("Failed to send request: {}", e),
                 }
-            } else {
-                eprintln!("Request failed with status: {}", response.status());
+                break; // Exit the loop on success
+            },
+            Err(e) => {
+                if attempt < max_retries - 1 {
+                    // Log the retry attempt
+                    eprintln!("Rate limit exceeded, retrying... (Attempt {})", attempt + 1);
+                    // Wait before retrying
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                } else {
+                    // Max retries exceeded, handle accordingly
+                    eprintln!("Error: Rate limit exceeded after {} attempts: {:?}", max_retries, e);
+                    // You can choose to exit, return an error, etc.
+                    return; // Or use `return Err(e)` if the function returns a Result
+                }
             }
         }
-        Err(e) => eprintln!("Failed to send request: {}", e),
     }
 }
 
