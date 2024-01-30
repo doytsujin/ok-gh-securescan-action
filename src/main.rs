@@ -4,15 +4,17 @@ use std::process::exit;
 use reqwest;
 use serde_json::Value;
 use governor::{Quota, RateLimiter};
+use governor::clock::DefaultClock;
 use std::num::NonZeroU32;
-use std::time::Duration;
 use quanta::Clock;
+use tokio;
 
 #[tokio::main]
-fn main() {
+async fn main() {
     let github_output_path = env::var("GITHUB_OUTPUT").unwrap();
 
     let args: Vec<String> = env::args().collect();
+    let rate_limiter = RateLimiter::keyed(Quota::per_minute(NonZeroU32::new(50).unwrap()));
 
     // Check for the presence of at least one argument (the command)
     if args.len() < 2 {
@@ -32,7 +34,7 @@ fn main() {
                 exit(1);
             }
             let param = &args[2];
-            plan(param).await;
+            plan(param, &rate_limiter).await;
         },
         "run" => run(),
         _ => {
@@ -48,24 +50,30 @@ fn clean() {
     println!("Running 'clean'");
 }
 
-async fn plan(enterprise: &str) {
+async fn plan(enterprise: &str, rate_limiter: &RateLimiter<Clock>) {
     let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
 
-    match reqwest::get(&url).await {
-        Ok(response) => {
-            if response.status().is_success() {
-                match response.json::<Value>().await {
-                    Ok(repos) => {
-                        // Process the list of repositories here
-                        println!("Repositories: {:?}", repos);
+    // Check rate limiter
+    if rate_limiter.check_key(&()).is_ok() {
+        // Proceed with the request
+        match reqwest::get(&url).await {
+            Ok(response) => {
+                if response.status().is_success() {
+                    match response.json::<Value>().await {
+                        Ok(repos) => {
+                            // Process the list of repositories here
+                            println!("Repositories: {:?}", repos);
+                        }
+                        Err(e) => eprintln!("Failed to parse response: {}", e),
                     }
-                    Err(e) => eprintln!("Failed to parse response: {}", e),
+                } else {
+                    eprintln!("Request failed with status: {}", response.status());
                 }
-            } else {
-                eprintln!("Request failed with status: {}", response.status());
             }
+            Err(e) => eprintln!("Failed to send request: {}", e),
         }
-        Err(e) => eprintln!("Failed to send request: {}", e),
+    } else {
+        eprintln!("Rate limit exceeded. Please try again later.");
     }
 }
 
