@@ -1,9 +1,9 @@
+use ratelimit::Ratelimiter;
+use reqwest;
+use serde_json::Value;
 use std::env;
 use std::fs::write;
 use std::process::exit;
-use reqwest;
-use serde_json::Value;
-use ratelimit::Ratelimiter;
 use std::time::Duration;
 use tokio;
 
@@ -31,16 +31,24 @@ async fn main() {
         "plan" => {
             if args.len() < 3 {
                 eprintln!("No parameter provided for 'plan'");
-                write(&github_output_path, "error=No parameter provided for 'plan'").unwrap();
+                write(
+                    &github_output_path,
+                    "error=No parameter provided for 'plan'",
+                )
+                .unwrap();
                 exit(1);
             }
             let param = &args[2];
             plan(param, &rate_limiter).await;
-        },
+        }
         "run" => run(),
         _ => {
             eprintln!("Invalid command: {}", command);
-            write(&github_output_path, &format!("error=Invalid command: {}", command)).unwrap();
+            write(
+                &github_output_path,
+                &format!("error=Invalid command: {}", command),
+            )
+            .unwrap();
             exit(1);
         }
     }
@@ -53,7 +61,7 @@ fn clean() {
 
 async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
     let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
-    
+
     let max_retries = 5; // Set the maximum number of retries
     for attempt in 0..max_retries {
         match rate_limiter.try_wait() {
@@ -75,7 +83,7 @@ async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
                     Err(e) => eprintln!("Failed to send request: {}", e),
                 }
                 break; // Exit the loop on success
-            },
+            }
             Err(e) => {
                 if attempt < max_retries - 1 {
                     // Log the retry attempt
@@ -84,7 +92,10 @@ async fn plan(enterprise: &str, rate_limiter: &Ratelimiter) {
                     tokio::time::sleep(Duration::from_secs(1)).await;
                 } else {
                     // Max retries exceeded, handle accordingly
-                    eprintln!("Error: Rate limit exceeded after {} attempts: {:?}", max_retries, e);
+                    eprintln!(
+                        "Error: Rate limit exceeded after {} attempts: {:?}",
+                        max_retries, e
+                    );
                     // You can choose to exit, return an error, etc.
                     return; // Or use `return Err(e)` if the function returns a Result
                 }
