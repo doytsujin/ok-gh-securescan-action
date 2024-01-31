@@ -1,13 +1,13 @@
-use ratelimit::Ratelimiter;
+use tokio;
 use reqwest;
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
-use serde_json::Value;
-use std::env;
 use std::fs;
+use std::env;
 use std::fs::write;
+use serde_json::Value;
 use std::process::exit;
 use std::time::Duration;
-use tokio;
+use ratelimit::Ratelimiter;
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
 
 #[tokio::main]
 async fn main() {
