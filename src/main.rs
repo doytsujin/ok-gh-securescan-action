@@ -12,33 +12,36 @@ use tokio;
 #[tokio::main]
 async fn main() {
     let github_output_path =
-        env::var("GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
+        env::var("GHSS_GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
 
     let args: Vec<String> = env::args().collect();
 
-    // This value represents the number of tokens that the rate limiter replenishes per some unit of time.
-    let tokens_per_unit = env::var("TOKENS_PER_UNIT")
+    // This value represents the number of tokens that the rate limiter
+    // replenishes per some unit of time.
+    let tokens_per_unit = env::var("GHSS_TOKENS_PER_UNIT")
         .unwrap_or_else(|_| String::from("1"))
         .parse::<u64>()
         .unwrap_or(0);
 
-    // This value specifies a unit of time as Y seconds. This part suggests that the rate limiter will add X token every Y seconds.
-    let unit_of_time = env::var("UNIT_OF_TIME")
+    // This value specifies a unit of time as Y seconds. This part suggests
+    // that the rate limiter will add X token every Y seconds.
+    let unit_of_time = env::var("GHSS_UNIT_OF_TIME")
         .unwrap_or_else(|_| String::from("10"))
         .parse::<u64>()
         .unwrap_or(0);
 
     // This value sets the maximum number of tokens that the rate limiter can hold.
-    // It's set to Z.
-    // This means that even if the rate limiter doesn't spend any tokens for a while, it can accumulate at most Z tokens.
-    let max_tokens = env::var("MAX_TOKENS")
+    // It's set to Z. This means that even if the rate limiter doesn't spend any tokens
+    // for a while, it can accumulate at most Z tokens.
+    let max_tokens = env::var("GHSS_MAX_TOKENS")
         .unwrap_or_else(|_| String::from("10"))
         .parse::<u64>()
         .unwrap_or(0);
 
     // This value sets the initial number of available tokens when the rate limiter starts.
-    // If this value equals to Z than it means the rate limiter starts off with its maximum capacity of tokens.
-    let initial_tokens = env::var("INITIAL_TOKENS")
+    // If this value equals to Z than it means the rate limiter starts off with its
+    // maximum capacity of tokens.
+    let initial_tokens = env::var("GHSS_INITIAL_TOKENS")
         .unwrap_or_else(|_| String::from("10"))
         .parse::<u64>()
         .unwrap_or(0);
@@ -88,7 +91,7 @@ fn clean() {
 }
 
 async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
-    let github_token = env::var("GITHUB_TOKEN").unwrap_or_else(|_| String::from("UNKNOWN"));
+    let github_token = env::var("GHSS_GITHUB_TOKEN").unwrap_or_else(|_| String::from("UNKNOWN"));
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -103,11 +106,11 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
         "X-GitHub-Api-Version",
         HeaderValue::from_static("2022-11-28"),
     );
-    let user_agent = env::var("USER_AGENT").unwrap_or_else(|_| String::from("curl/7.68.0"));
+    let user_agent = env::var("GHSS_USER_AGENT").unwrap_or_else(|_| String::from("curl/7.68.0"));
     headers.insert(USER_AGENT, user_agent.parse().unwrap());
 
     // Set the maximum number of retries
-    let max_retries = env::var("MAX_RETRIES")
+    let max_retries = env::var("GHSS_MAX_RETRIES")
         .unwrap_or_else(|_| String::from("10"))
         .parse::<u64>()
         .unwrap_or(0);
