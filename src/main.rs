@@ -120,8 +120,8 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
             Ok(_) => {
                 let request_builder = client
                     .get(&format!(
-                        // "https://api.github.com/repos/{}/ok-gh-securescan-action",
-                        "https://api.github.com/enterprises/{}/repos",
+                        "https://api.github.com/repos/{}/ok-gh-securescan-action",
+                        // "https://api.github.com/enterprises/{}/repos",
                         enterprise
                     ))
                     .headers(headers.clone());
