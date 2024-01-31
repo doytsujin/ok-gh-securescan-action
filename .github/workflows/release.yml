@@ -56,7 +56,7 @@ jobs:
 
       - name: Build for x86_64-unknown-linux-musl 
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: PKG_CONFIG_SYSROOT_DIR=/ cargo build --release --target ${{ matrix.target }}
+        run: RUST_BACKTRACE=1 cargo build --release --target ${{ matrix.target }}
 
       - name: Build for x86_64-apple-darwin
         if: ${{ matrix.target == 'x86_64-apple-darwin' }}
