@@ -11,6 +11,7 @@ use std::time::Duration;
 use tokio;
 extern crate uuid;
 use std::path::Path;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 // Define the structs according to your JSON structure
@@ -269,13 +270,10 @@ fn create_output_dir() -> String {
         Ok(path) => path,
         Err(_) => return "Error: Unable to determine executable path".to_string(),
     };
-
     exe_path.push("output");
-
     if let Err(_) = fs::create_dir_all(&exe_path) {
         return "Error: Unable to create output directory".to_string();
     }
-
     match exe_path.to_str() {
         Some(path_str) => path_str.to_string(),
         None => "Error: Path contains invalid Unicode".to_string(),
@@ -283,23 +281,19 @@ fn create_output_dir() -> String {
 }
 
 fn create_results_dir() -> String {
-    // Get the current executable path
     let mut exe_path = match env::current_exe() {
         Ok(path) => path,
-        Err(_) => return "Error: Unable to determine executable path".to_string(),
+        Err(e) => return format!("Error: Unable to determine executable path - {}", e),
     };
-
-    // Append "results" to the executable path
+    if let Some(parent) = exe_path.parent() {
+        exe_path = PathBuf::from(parent);
+    }
     exe_path.push("results");
-
-    // Create the "results" directory
-    if let Err(_) = fs::create_dir_all(&exe_path) {
-        return "Error: Unable to create results directory".to_string();
+    if let Err(e) = fs::create_dir_all(&exe_path) {
+        return format!("Error: Unable to create results directory - {}", e);
     }
-
-    // Convert the path to a string
-    match exe_path.to_str() {
-        Some(path_str) => path_str.to_string(),
-        None => "Error: Path contains invalid Unicode".to_string(),
-    }
+    exe_path
+        .to_str()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "Error: Path contains invalid Unicode".to_string())
 }
