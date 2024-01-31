@@ -120,7 +120,8 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
             Ok(_) => {
                 let request_builder = client
                     .get(&format!(
-                        "https://api.github.com/repos/{}/ok-gh-securescan-action",
+                        // "https://api.github.com/repos/{}/ok-gh-securescan-action",
+                        "https://api.github.com/enterprises/{}/repos",
                         enterprise
                     ))
                     .headers(headers.clone());
@@ -146,6 +147,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                                         }
                                         Err(e) => eprintln!("Failed to parse response: {}", e),
                                     }
+                                    break;
                                 } else {
                                     eprintln!("Request failed with status: {}", response.status());
                                 }
