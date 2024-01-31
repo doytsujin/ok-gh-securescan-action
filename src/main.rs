@@ -27,6 +27,12 @@ struct SecretScanning {
     status: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
+struct NewRepo {
+    name: String,
+    security_status: String,
+}
+
 #[tokio::main]
 async fn main() {
     let github_output_path =
@@ -165,36 +171,76 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                                         Ok(repos) => {
                                             // Process the list of repositories here
                                             println!("Repositories: {:?}", repos);
-                                            // Prepare JSON data deserialize
-                                            let data = r#"
-                                    [
-                                        {
-                                            "name": "example-repo-1",
-                                            "security_and_analysis": {
-                                                "secret_scanning": { "status": "enabled" }
-                                            }
-                                        },
-                                        {
-                                            "name": "example-repo-2",
-                                            // This repo has no security_and_analysis data
-                                        }
-                                    ]
-                                    "#;
-
                                             // Deserialize the JSON data into a Vec<Repo>
-                                            let foundrepos: Vec<Repo> =
-                                                serde_json::from_str(data).unwrap();
-                                            for foundrepo in foundrepos {
-                                                let security_status = foundrepo
-                                                    .security_and_analysis
-                                                    .and_then(|sa| sa.secret_scanning)
-                                                    .and_then(|ss| ss.status)
-                                                    .unwrap_or_else(|| "N/A".to_string());
-                                                println!(
-                                                    "Name: {}, Security Status: {}",
-                                                    foundrepo.name, security_status
-                                                );
+                                            let foundrepos: Result<Vec<Repo>, serde_json::Error> =
+                                                serde_json::from_str(&repos.to_string());
+                                            match foundrepos {
+                                                Ok(repos) => {
+                                                    let mut new_repos = Vec::new(); // Create a vector to hold the new repo data
+                                                    for foundrepo in repos {
+                                                        let security_status = foundrepo
+                                                            .security_and_analysis
+                                                            .and_then(|sa| sa.secret_scanning)
+                                                            .and_then(|ss| ss.status)
+                                                            .unwrap_or_else(|| "N/A".to_string());
+
+                                                        // Create a new instance of NewRepo
+                                                        let new_repo = NewRepo {
+                                                            name: foundrepo.name.clone(),
+                                                            security_status.clone(),
+                                                        };
+                                                        new_repos.push(new_repo); // Add it to the vector
+                                                        println!(
+                                                            "Name: {}, Security Status: {}",
+                                                            foundrepo.name, security_status
+                                                        );
+                                                    }
+                                                    // Serialize the new_repos vector to a JSON string
+                                                    match serde_json::to_string(&new_repos) {
+                                                        Ok(json_string) => {
+                                                            // Write the JSON string to a file or use it as needed
+                                                            std::fs::write(
+                                                                "new_repos.json",
+                                                                json_string,
+                                                            )
+                                                            .expect("Unable to write file");
+                                                        }
+                                                        Err(e) => {
+                                                            println!("Failed to serialize new JSON data: {}", e);
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    println!(
+                                                        "Failed to deserialize JSON data: {}",
+                                                        e
+                                                    );
+                                                }
                                             }
+
+                                            /*
+                                                                                        match foundrepos {
+                                                                                            Ok(repos) => {
+                                                                                                for foundrepo in repos {
+                                                                                                    let security_status = foundrepo
+                                                                                                        .security_and_analysis
+                                                                                                        .and_then(|sa| sa.secret_scanning)
+                                                                                                        .and_then(|ss| ss.status)
+                                                                                                        .unwrap_or_else(|| "N/A".to_string());
+                                                                                                    println!(
+                                                                                                        "Name: {}, Security Status: {}",
+                                                                                                        foundrepo.name, security_status
+                                                                                                    );
+                                                                                                }
+                                                                                            }
+                                                                                            Err(e) => {
+                                                                                                println!(
+                                                                                                    "Failed to deserialize JSON data: {}",
+                                                                                                    e
+                                                                                                );
+                                                                                            }
+                                                                                        }
+                                            */
                                         }
                                         Err(e) => eprintln!("Failed to parse response: {}", e),
                                     }
