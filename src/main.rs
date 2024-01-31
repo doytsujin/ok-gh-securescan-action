@@ -218,30 +218,6 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                                                     );
                                                 }
                                             }
-
-                                            /*
-                                                                                        match foundrepos {
-                                                                                            Ok(repos) => {
-                                                                                                for foundrepo in repos {
-                                                                                                    let security_status = foundrepo
-                                                                                                        .security_and_analysis
-                                                                                                        .and_then(|sa| sa.secret_scanning)
-                                                                                                        .and_then(|ss| ss.status)
-                                                                                                        .unwrap_or_else(|| "N/A".to_string());
-                                                                                                    println!(
-                                                                                                        "Name: {}, Security Status: {}",
-                                                                                                        foundrepo.name, security_status
-                                                                                                    );
-                                                                                                }
-                                                                                            }
-                                                                                            Err(e) => {
-                                                                                                println!(
-                                                                                                    "Failed to deserialize JSON data: {}",
-                                                                                                    e
-                                                                                                );
-                                                                                            }
-                                                                                        }
-                                            */
                                         }
                                         Err(e) => eprintln!("Failed to parse response: {}", e),
                                     }
