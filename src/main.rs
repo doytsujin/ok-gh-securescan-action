@@ -268,16 +268,19 @@ fn plan() {
 fn create_output_dir() -> String {
     let mut exe_path = match env::current_exe() {
         Ok(path) => path,
-        Err(_) => return "Error: Unable to determine executable path".to_string(),
+        Err(e) => return format!("Error: Unable to determine executable path - {}", e),
     };
+    if let Some(parent) = exe_path.parent() {
+        exe_path = PathBuf::from(parent);
+    }
     exe_path.push("output");
-    if let Err(_) = fs::create_dir_all(&exe_path) {
-        return "Error: Unable to create output directory".to_string();
+    if let Err(e) = fs::create_dir_all(&exe_path) {
+        return format!("Error: Unable to create output directory - {}", e);
     }
-    match exe_path.to_str() {
-        Some(path_str) => path_str.to_string(),
-        None => "Error: Path contains invalid Unicode".to_string(),
-    }
+    exe_path
+        .to_str()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "Error: Path contains invalid Unicode".to_string())
 }
 
 fn create_results_dir() -> String {
