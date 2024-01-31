@@ -1,13 +1,31 @@
-use tokio;
+use ratelimit::Ratelimiter;
 use reqwest;
-use std::fs;
-use std::env;
-use std::fs::write;
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::env;
+use std::fs;
+use std::fs::write;
 use std::process::exit;
 use std::time::Duration;
-use ratelimit::Ratelimiter;
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
+use tokio;
+
+// Define the structs according to your JSON structure
+#[derive(Serialize, Deserialize)]
+struct Repo {
+    name: String,
+    security_and_analysis: Option<SecurityAnalysis>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SecurityAnalysis {
+    secret_scanning: Option<SecretScanning>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SecretScanning {
+    status: Option<String>,
+}
 
 #[tokio::main]
 async fn main() {
@@ -15,42 +33,6 @@ async fn main() {
         env::var("GHSS_GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
 
     let args: Vec<String> = env::args().collect();
-
-    // This value represents the number of tokens that the rate limiter
-    // replenishes per some unit of time.
-    let tokens_per_unit = env::var("GHSS_TOKENS_PER_UNIT")
-        .unwrap_or_else(|_| String::from("1"))
-        .parse::<u64>()
-        .unwrap_or(0);
-
-    // This value specifies a unit of time as Y seconds. This part suggests
-    // that the rate limiter will add X token every Y seconds.
-    let unit_of_time = env::var("GHSS_UNIT_OF_TIME")
-        .unwrap_or_else(|_| String::from("10"))
-        .parse::<u64>()
-        .unwrap_or(0);
-
-    // This value sets the maximum number of tokens that the rate limiter can hold.
-    // It's set to Z. This means that even if the rate limiter doesn't spend any tokens
-    // for a while, it can accumulate at most Z tokens.
-    let max_tokens = env::var("GHSS_MAX_TOKENS")
-        .unwrap_or_else(|_| String::from("10"))
-        .parse::<u64>()
-        .unwrap_or(0);
-
-    // This value sets the initial number of available tokens when the rate limiter starts.
-    // If this value equals to Z than it means the rate limiter starts off with its
-    // maximum capacity of tokens.
-    let initial_tokens = env::var("GHSS_INITIAL_TOKENS")
-        .unwrap_or_else(|_| String::from("10"))
-        .parse::<u64>()
-        .unwrap_or(0);
-
-    let rate_limiter = Ratelimiter::builder(tokens_per_unit, Duration::from_secs(unit_of_time))
-        .max_tokens(max_tokens)
-        .initial_available(initial_tokens)
-        .build()
-        .unwrap();
 
     // Check for the presence of at least one argument (the command)
     if args.len() < 2 {
@@ -69,6 +51,43 @@ async fn main() {
                 write(&github_output_path, "error=No parameter provided for 'run'").unwrap();
                 exit(1);
             }
+            // This value represents the number of tokens X that the rate limiter
+            // replenishes per some unit of time.
+            let tokens_per_unit = env::var("GHSS_TOKENS_PER_UNIT")
+                .unwrap_or_else(|_| String::from("1"))
+                .parse::<u64>()
+                .unwrap_or(0);
+
+            // This value specifies a unit of time as Y seconds. This part suggests
+            // that the rate limiter will add X token every Y seconds.
+            let unit_of_time = env::var("GHSS_UNIT_OF_TIME")
+                .unwrap_or_else(|_| String::from("10"))
+                .parse::<u64>()
+                .unwrap_or(0);
+
+            // This value sets the maximum number of tokens that the rate limiter can hold.
+            // It's set to Z. This means that even if the rate limiter doesn't spend any tokens
+            // for a while, it can accumulate at most Z tokens.
+            let max_tokens = env::var("GHSS_MAX_TOKENS")
+                .unwrap_or_else(|_| String::from("10"))
+                .parse::<u64>()
+                .unwrap_or(0);
+
+            // This value sets the initial number of available tokens when the rate limiter starts.
+            // If this value equals to Z than it means the rate limiter starts off with its
+            // maximum capacity of tokens.
+            let initial_tokens = env::var("GHSS_INITIAL_TOKENS")
+                .unwrap_or_else(|_| String::from("10"))
+                .parse::<u64>()
+                .unwrap_or(0);
+
+            let rate_limiter =
+                Ratelimiter::builder(tokens_per_unit, Duration::from_secs(unit_of_time))
+                    .max_tokens(max_tokens)
+                    .initial_available(initial_tokens)
+                    .build()
+                    .unwrap();
+
             let param = &args[2];
             run(param, &rate_limiter).await;
         }
@@ -146,6 +165,36 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                                         Ok(repos) => {
                                             // Process the list of repositories here
                                             println!("Repositories: {:?}", repos);
+                                            // Prepare JSON data deserialize
+                                            let data = r#"
+                                    [
+                                        {
+                                            "name": "example-repo-1",
+                                            "security_and_analysis": {
+                                                "secret_scanning": { "status": "enabled" }
+                                            }
+                                        },
+                                        {
+                                            "name": "example-repo-2",
+                                            // This repo has no security_and_analysis data
+                                        }
+                                    ]
+                                    "#;
+
+                                            // Deserialize the JSON data into a Vec<Repo>
+                                            let foundrepos: Vec<Repo> =
+                                                serde_json::from_str(data).unwrap();
+                                            for foundrepo in foundrepos {
+                                                let security_status = foundrepo
+                                                    .security_and_analysis
+                                                    .and_then(|sa| sa.secret_scanning)
+                                                    .and_then(|ss| ss.status)
+                                                    .unwrap_or_else(|| "N/A".to_string());
+                                                println!(
+                                                    "Name: {}, Security Status: {}",
+                                                    foundrepo.name, security_status
+                                                );
+                                            }
                                         }
                                         Err(e) => eprintln!("Failed to parse response: {}", e),
                                     }
