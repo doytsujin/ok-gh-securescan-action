@@ -133,8 +133,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                         "Error: Rate limit exceeded after {} attempts: {:?}",
                         max_retries, e
                     );
-                    // You can choose to exit, return an error, etc.
-                    return; // Or use `return Err(e)` if the function returns a Result
+                    return;
                 }
             }
         }
@@ -147,21 +146,17 @@ fn plan() {
 }
 
 fn create_output_dir() -> String {
-    // Get the current executable path
     let mut exe_path = match env::current_exe() {
         Ok(path) => path,
         Err(_) => return "Error: Unable to determine executable path".to_string(),
     };
 
-    // Append "output" to the path
     exe_path.push("output");
 
-    // Create the "output" directory if it doesn't exist
     if let Err(_) = fs::create_dir_all(&exe_path) {
         return "Error: Unable to create output directory".to_string();
     }
 
-    // Convert the path to a string
     match exe_path.to_str() {
         Some(path_str) => path_str.to_string(),
         None => "Error: Path contains invalid Unicode".to_string(),
