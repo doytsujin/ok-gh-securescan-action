@@ -9,6 +9,9 @@ use std::fs::write;
 use std::process::exit;
 use std::time::Duration;
 use tokio;
+extern crate uuid;
+use std::path::Path;
+use uuid::Uuid;
 
 // Define the structs according to your JSON structure
 #[derive(Serialize, Deserialize)]
@@ -199,12 +202,14 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                                                     // Serialize the new_repos vector to a JSON string
                                                     match serde_json::to_string(&new_repos) {
                                                         Ok(json_string) => {
-                                                            // Write the JSON string to a file or use it as needed
-                                                            std::fs::write(
-                                                                "new_repos.json",
-                                                                json_string,
-                                                            )
-                                                            .expect("Unable to write file");
+                                                            let filename =
+                                                                format!("{}.json", Uuid::new_v4());
+                                                            let temp_dir =
+                                                                create_results_dir().clone();
+                                                            let dir_path = Path::new(&temp_dir);
+                                                            let file_path = dir_path.join(filename);
+                                                            std::fs::write(file_path, json_string)
+                                                                .expect("Unable to write file");
                                                         }
                                                         Err(e) => {
                                                             println!("Failed to serialize new JSON data: {}", e);
