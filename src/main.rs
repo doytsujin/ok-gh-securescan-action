@@ -16,9 +16,36 @@ async fn main() {
 
     let args: Vec<String> = env::args().collect();
 
-    let rate_limiter = Ratelimiter::builder(1, Duration::from_secs(10))
-        .max_tokens(10)
-        .initial_available(10)
+    // This value represents the number of tokens that the rate limiter replenishes per some unit of time.
+    let tokens_per_unit = env::var("TOKENS_PER_UNIT")
+        .unwrap_or_else(|_| String::from("1"))
+        .parse::<u64>()
+        .unwrap_or(0);
+
+    // This value specifies a unit of time as Y seconds. This part suggests that the rate limiter will add X token every Y seconds.
+    let unit_of_time = env::var("UNIT_OF_TIME")
+        .unwrap_or_else(|_| String::from("10"))
+        .parse::<u64>()
+        .unwrap_or(0);
+
+    // This value sets the maximum number of tokens that the rate limiter can hold.
+    // It's set to Z.
+    // This means that even if the rate limiter doesn't spend any tokens for a while, it can accumulate at most Z tokens.
+    let max_tokens = env::var("MAX_TOKENS")
+        .unwrap_or_else(|_| String::from("10"))
+        .parse::<u64>()
+        .unwrap_or(0);
+
+    // This value sets the initial number of available tokens when the rate limiter starts.
+    // If this value equals to Z than it means the rate limiter starts off with its maximum capacity of tokens.
+    let initial_tokens = env::var("INITIAL_TOKENS")
+        .unwrap_or_else(|_| String::from("10"))
+        .parse::<u64>()
+        .unwrap_or(0);
+
+    let rate_limiter = Ratelimiter::builder(tokens_per_unit, Duration::from_secs(unit_of_time))
+        .max_tokens(max_tokens)
+        .initial_available(initial_tokens)
         .build()
         .unwrap();
 
