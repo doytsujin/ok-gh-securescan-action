@@ -1,8 +1,6 @@
 use ratelimit::Ratelimiter;
 use reqwest;
-// use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
-use reqwest::{Error, Request, Response};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -63,7 +61,7 @@ fn clean() {
 }
 
 async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
-    // let url = format!("https://api.github.com/enterprises/{}/repos", enterprise);
+    let github_token = env::var("GITHUB_TOKEN").unwrap_or_else(|_| String::from("UNKNOWN"));
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -72,7 +70,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
     );
     headers.insert(
         AUTHORIZATION,
-        HeaderValue::from_static("Bearer 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"),
+        HeaderValue::from_str(&format!("Bearer {}", github_token)).unwrap(),
     );
     headers.insert(
         "X-GitHub-Api-Version",
@@ -84,8 +82,10 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
         match rate_limiter.try_wait() {
             Ok(_) => {
                 let request_builder = client
-                    .get("https://api.github.com/repos/doytsujin/ok-gh-securescan-action")
-                    .basic_auth("doytsujin", Some(""))
+                    .get(&format!(
+                        "https://api.github.com/repos/{}/ok-gh-securescan-action",
+                        enterprise
+                    ))
                     .headers(headers.clone());
                 match request_builder.build() {
                     Ok(request) => {
