@@ -1,6 +1,6 @@
 use ratelimit::Ratelimiter;
 use reqwest;
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, ACCEPT, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -103,9 +103,15 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
         "X-GitHub-Api-Version",
         HeaderValue::from_static("2022-11-28"),
     );
-    headers.insert(USER_AGENT, "curl/7.68.0".parse().unwrap());
+    let user_agent = env::var("USER_AGENT").unwrap_or_else(|_| String::from("curl/7.68.0"));
+    headers.insert(USER_AGENT, user_agent.parse().unwrap());
 
-    let max_retries = 10; // Set the maximum number of retries
+    // Set the maximum number of retries
+    let max_retries = env::var("MAX_RETRIES")
+        .unwrap_or_else(|_| String::from("10"))
+        .parse::<u64>()
+        .unwrap_or(0);
+
     for attempt in 0..max_retries {
         match rate_limiter.try_wait() {
             Ok(_) => {
@@ -129,7 +135,7 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                         match response {
                             Ok(response) => {
                                 if response.status().is_success() {
-                                    println!("Response: {:?}", response);
+                                    // println!("Response: {:?}", response);
                                     match response.json::<Value>().await {
                                         Ok(repos) => {
                                             // Process the list of repositories here
