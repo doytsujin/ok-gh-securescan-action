@@ -40,7 +40,7 @@ struct NewRepo {
 #[tokio::main]
 async fn main() {
     let github_output_path =
-        env::var("GHSS_GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
+        env::var("GITHUB_OUTPUT").unwrap_or_else(|_| String::from(create_output_dir()));
 
     let args: Vec<String> = env::args().collect();
 
