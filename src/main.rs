@@ -276,3 +276,25 @@ fn create_output_dir() -> String {
         None => "Error: Path contains invalid Unicode".to_string(),
     }
 }
+
+fn create_results_dir() -> String {
+    // Get the current executable path
+    let mut exe_path = match env::current_exe() {
+        Ok(path) => path,
+        Err(_) => return "Error: Unable to determine executable path".to_string(),
+    };
+
+    // Append "results" to the executable path
+    exe_path.push("results");
+
+    // Create the "results" directory
+    if let Err(_) = fs::create_dir_all(&exe_path) {
+        return "Error: Unable to create results directory".to_string();
+    }
+
+    // Convert the path to a string
+    match exe_path.to_str() {
+        Some(path_str) => path_str.to_string(),
+        None => "Error: Path contains invalid Unicode".to_string(),
+    }
+}
