@@ -187,7 +187,8 @@ async fn run(enterprise: &str, rate_limiter: &Ratelimiter) {
                                                         // Create a new instance of NewRepo
                                                         let new_repo = NewRepo {
                                                             name: foundrepo.name.clone(),
-                                                            security_status: security_status.clone(),
+                                                            security_status: security_status
+                                                                .clone(),
                                                         };
                                                         new_repos.push(new_repo); // Add it to the vector
                                                         println!(
